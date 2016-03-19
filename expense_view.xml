@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data noupdate="1">
+        <record id="hr_expense.mt_expense_agreed" model="mail.message.subtype">
+            <field name="name">Agreed</field>
+            <field name="res_model">hr.expense</field>
+            <field name="default" eval="False"/>
+            <field name="description">部门经理已通过您的费用报销申请，等待总经理审批</field>
+        </record>
+    </data>
+
+    <data>
+        <record id="hr_expense.view_expenses_tree" model="ir.ui.view">
+            <field name="name">hr.expense.tree</field>
+            <field name="model">hr.expense</field>
+            <field name="arch" type="xml">
+                <tree string="Expenses" decoration-danger="state=='cancel'" decoration-info="state=='approve'" decoration-success="state=='done'" decoration-warning="state=='draft'" decoration-bf="message_unread == True">
+                    <field name="date"/>
+                    <field name="name"/>
+                    <field name="employee_id"/>
+                    <field name="analytic_account_id" groups="analytic.group_analytic_accounting"/>
+                    <field name="total_amount" sum="Total Amount" widget="monetary"/>
+                    <field name="state"/>
+                    <field name="message_unread" invisible="1"/>
+                    <button name="submit_expenses" states="draft" string="Submit to Manager" type="object" icon="fa-check"/>
+                    <button name="agree_expenses" states="submit" string="Click here to approve" type="object" icon="fa-check" groups="base.group_sale_manager"/>
+                    <button name="approve_expenses" states="agree" string="Click here to approve" type="object" icon="fa-check" groups="base.user_root"/>
+                    <button name="%(hr_expense.hr_expense_refuse_wizard_action)d" states="submit,agree" string="Click here to refuse" type="action" icon="fa-times" groups="base.group_sale_manager"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="hr_expense.hr_expense_my_tree" model="ir.ui.view">
+            <field name="name">my.hr.expense.tree</field>
+            <field name="model">hr.expense</field>
+            <field name="arch" type="xml">
+                <tree string="Expenses" decoration-danger="state=='cancel'" decoration-info="state=='approve'" decoration-success="state=='done'" decoration-warning="state=='draft'" decoration-bf="message_unread == True">
+                    <field name="date"/>
+                    <field name="name"/>
+                    <field name="analytic_account_id" groups="analytic.group_analytic_accounting"/>
+                    <field name="total_amount" sum="Total Amount" widget="monetary"/>
+                    <field name="state"/>
+                    <field name="message_unread" invisible="1"/>
+                    <button name="submit_expenses" states="draft" string="Submit to Manager" type="object" icon="fa-check"/>
+                    <button name="agree_expenses" states="submit" string="Click here to approve" type="object" icon="fa-check" groups="base.group_sale_manager"/>
+                    <button name="approve_expenses" states="agree" string="Click here to approve" type="object" icon="fa-check" groups="base.user_root"/>
+                    <button name="%(hr_expense.hr_expense_refuse_wizard_action)d" states="submit,agree" string="Click here to refuse" type="action" icon="fa-times" groups="base.group_sale_manager"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="hr_expense.hr_expense_form_view" model="ir.ui.view">
+            <field name="name">hr.expense.form</field>
+            <field name="model">hr.expense</field>
+            <field eval="25" name="priority"/>
+            <field name="arch" type="xml">
+                <form string="Expenses">
+                <header>
+                    <button name="submit_expenses" states="draft" string="Submit to Manager" type="object" class="oe_highlight"/>
+                    <button name="agree_expenses" states="submit" string="同意" type="object" groups="base.group_hr_user" class="oe_highlight"/>
+                    <button name="approve_expenses" states="agree" string="通过" type="object" groups="base.group_hr_user" class="oe_highlight"/>
+                    <button name="%(hr_expense.hr_expense_refuse_wizard_action)d" states="submit,agree" string="Refuse" type="action" groups="base.group_hr_user" />
+                    <button name="%(hr_expense.hr_expense_refuse_wizard_action)d" states="approve" string="Refuse" type="action" groups="account.group_account_user" />
+                    <button name="reset_expenses" states="cancel" string="Set to Draft" type="object"/>
+                    <button name="action_move_create" states="approve" string="Post Journal Entries" type="object" groups="account.group_account_user" class="oe_highlight"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submit,agree,approve,post,done" statusbar_colors='{"submit":"blue","cancel":"red"}'/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box">
+                        <button name="action_get_attachment_view"
+                            class="oe_stat_button"
+                            icon="fa-book"
+                            type="object">
+                            <field name="attachment_number" widget="statinfo" string="Documents"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Business lunch with X"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date" string="提交日期"/>
+                            <field name="employee_id" string="申请人" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="department_id" invisible="1"/>
+                            <field name="analytic_account_id" groups="analytic.group_analytic_accounting"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="journal_id" domain="[('type', '=', 'purchase')]" groups="account.group_account_user"
+                                options="{'no_open': True, 'no_create': True}"/>
+                            <field name="account_move_id" groups="account.group_account_user" domain="[('type', '=', 'purchase'])]" readonly="1"/>
+                        </group><group>
+                            <field name="total_amount" widget='monetary' options="{'currency_field': 'currency_id'}"/>
+                            <label for="payment_mode"/>
+                            <div>
+                                <field name="payment_mode" widget="radio"/>
+                                <field name="bank_journal_id"
+                                    attrs="{'invisible': [('payment_mode', '=', 'own_account')], 'required': [('payment_mode', '=', 'company_account')]}" domain="[('type', 'in', ['cash', 'bank'])]"
+                                    widget="selection"/>
+                            </div>
+                        </group>
+
+                    </group>
+                    <field name="product_id" invisible="1"/>
+                    <field name="line_ids" nolabel="1"  >
+                        <tree string="报销类型" editable="buttom">
+                            <field name="product_id" string="报销类型" domain="[('can_be_expensed','=',True)]" options='{"no_open": True, "no_create": True}'/>
+                            <field name="name"/>
+                            <field name="product_uom_qty" />
+                            <field name="product_uom" invisible="1" options='{"no_open": True, "no_create": True}'/>
+                            <field name="purchase_price" invisible="1"/>
+                            <field name="price_unit" string="单价"/>
+                            <field name="price_total" string="总价"/>
+                        </tree>
+                    </field>
+                    <div>
+                        <field name="description" placeholder="Notes..."/>
+                    </div>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="hr_expense.view_hr_expense_filter" model="ir.ui.view">
+            <field name="name">hr.expense.filter</field>
+            <field name="model">hr.expense</field>
+            <field name="arch" type="xml">
+                <search string="Expense">
+                    <field name="name" string="Expenses"/>
+                    <field name="date"/>
+                    <field name="employee_id"/>
+                    <field name="department_id" string="Department" context="{'invisible_department': False}"/>
+                    <field name="product_id"/>
+                    <field name="analytic_account_id" groups="analytic.group_analytic_accounting"/>
+                    <separator />
+                    <filter domain="[('state', '=', 'draft')]" string="New" help="New Expense"/>
+                    <filter domain="[('state', '=', 'agree')]" string="经理通过的" name="agreed" help="经理审批通过的报销单"/>
+                    <filter domain="[('state', '=', 'submit')]" string="总经理通过的" name="submitted" help="总经理审批通过的报销单"/>
+                    <filter domain="['|', ('state', '=', 'approve'), ('state', '=', 'post')]" string="To Pay" name="approved" help="Expenses to Invoice"/>
+                    <separator />
+                    <filter string="My Team Expenses" domain="[('employee_id.parent_id.user_id', '=', uid)]" groups="base.group_hr_manager" help="Expenses of Your Team Member"/>
+                    <filter string="My Expenses" domain="[('employee_id.user_id', '=', uid)]"/>
+                    <separator />
+                    <filter string="New Mail" name="message_unread" domain="[('message_unread', '=', True)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Employee" domain="[]" context="{'group_by': 'employee_id'}"/>
+                        <filter string="Department" domain="[]" context="{'group_by': 'department_id'}" groups="hr.group_multi_departments"/>
+                        <filter string="Company" domain="[]" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                        <filter string="Product" domain="[]" context="{'group_by': 'product_id'}"/>
+                        <filter string="Analytic Account" domain="[]" context="{'group_by': 'analytic_account_id'}" groups="analytic.group_analytic_accounting"/>
+                        <filter string="Expenses Month" domain="[]" context="{'group_by': 'date'}" help="Expenses by Month"/>
+                    </group>
+                    <separator />
+                    <filter domain="[('employee_id.active', '=', False)]" string="Former Employees" name="inactive" groups="base.group_hr_user,base.group_hr_manager"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="hr_expense.action_request_approve_expense" model="ir.actions.act_window">
+            <field name="context">{'search_default_submitted': 1,'search_default_agreed': 1, 'needaction_menu_ref': 'hr_expense.menu_expense_all'}</field>
+        </record>
+
+        <record id="hr_expense.hr_expense_action_from_department" model="ir.actions.act_window">
+            <field name="context">{
+                'search_default_submitted': 1,
+                'search_default_agreed': 1,
+                'search_default_department_id': [active_id],
+                'default_department_id': active_id}
+            </field>
+        </record>
+    </data>
+</openerp>
